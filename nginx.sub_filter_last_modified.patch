@@ -1,0 +1,52 @@
+--- src/http/modules/ngx_http_sub_filter_module.c	2013-04-24 20:37:57.191094158 +0400
++++ src/http/modules/ngx_http_sub_filter_module.c.new	2013-04-24 20:46:26.805127043 +0400
+@@ -17,6 +17,7 @@
+     ngx_hash_t                 types;
+ 
+     ngx_flag_t                 once;
++    ngx_flag_t                 last_modified;
+ 
+     ngx_array_t               *types_keys;
+ } ngx_http_sub_loc_conf_t;
+@@ -89,6 +90,13 @@
+       offsetof(ngx_http_sub_loc_conf_t, once),
+       NULL },
+ 
++    { ngx_string("sub_filter_last_modified"),
++      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
++      ngx_conf_set_flag_slot,
++      NGX_HTTP_LOC_CONF_OFFSET,
++      offsetof(ngx_http_sub_loc_conf_t, last_modified),
++      NULL },
++
+       ngx_null_command
+ };
+ 
+@@ -167,8 +175,10 @@
+ 
+     if (r == r->main) {
+         ngx_http_clear_content_length(r);
+-        ngx_http_clear_last_modified(r);
+         ngx_http_clear_etag(r);
++        if (slcf->last_modified == 0) {  
++            ngx_http_clear_last_modified(r);
++        }
+     }
+ 
+     return ngx_http_next_header_filter(r);
+@@ -674,6 +684,7 @@
+      */
+ 
+     slcf->once = NGX_CONF_UNSET;
++    slcf->last_modified = NGX_CONF_UNSET;
+ 
+     return slcf;
+ }
+@@ -687,6 +698,7 @@
+ 
+     ngx_conf_merge_value(conf->once, prev->once, 1);
+     ngx_conf_merge_str_value(conf->match, prev->match, "");
++    ngx_conf_merge_value(conf->last_modified, prev->last_modified, 0);
+ 
+     if (conf->value.value.data == NULL) {
+         conf->value = prev->value;
